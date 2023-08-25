@@ -11,6 +11,8 @@ pacman::p_load(biscale, cowplot, sf, ggplot2, tidyverse, magrittr, chilemapas, s
 
 ## Load shapefile
 
+### Shapefiles can be downloaded from https://www.bcn.cl/siit/mapas_vectoriales/index_html
+
 chile_municipalities <- sf::st_read(here("01-data/map-data/comunas.shp"))
 chile_regions <- sf::st_read(here("/01-data/map-data/Regional.shp"))
 
