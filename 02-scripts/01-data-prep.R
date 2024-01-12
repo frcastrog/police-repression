@@ -6,7 +6,7 @@
 
 pacman::p_load(chilemapas, tidyr, dplyr, readr, readxl, gdata, stringr, writexl,
                lubridate, janitor, stringr, here, plm, magrittr, haven, ggplot2, ggmap, 
-               geosphere, osmdata, sf, censo2017)
+               geosphere, osmdata, sf, censo2017, purrr)
 
 # DATAFRAME CREATION
 
@@ -526,3 +526,83 @@ final_df_7day_lag_acc <- final_df %>%
 # Save dataset
 
 save(final_df, file = "03-outputs/01-data/state-repression-df.RData")
+
+# CEP survey
+
+## CEP survey
+
+cep_survey <- read_sav("01-data/01-raw-data/cep-survey/Encuesta CEP 84 Dic 2019 v1.sav")
+
+# Fix date
+cep_survey$date <- as.Date(cep_survey$FECHAFIN, format = "%d-%m-%Y")
+
+# Standardize the territorial codes
+cep_survey$codigo_comuna_antiguo <- ifelse(nchar(cep_survey$COMUNA_BD) == 4, paste0("0", cep_survey$COMUNA_BD), cep_survey$COMUNA_BD)
+cep_survey$codigo_provincia <- ifelse(nchar(cep_survey$PROVINCIA_BD) == 2, paste0("0", cep_survey$PROVINCIA_BD), cep_survey$PROVINCIA_BD)
+cep_survey$codigo_region <- ifelse(nchar(cep_survey$REGION) == 1, paste0("0", cep_survey$REGION), cep_survey$REGION)
+
+
+cep_survey$respondent_id <- seq.int(nrow(cep_survey)) # create respondent id
+
+cep_survey <- cep_survey %>%
+  left_join(codigos_territoriales, by = "codigo_comuna_antiguo")
+
+cep_survey$date_day_before <- cep_survey$date - 1  # Subtracting one day
+
+# Include information of protest and repression from fina_df for both the date and the date_day_before
+
+cep_survey_with_current_day_data <- cep_survey %>%
+  left_join(final_df, by = c("nombre_comuna", "date"))
+
+cep_survey_with_previous_day_data <- cep_survey %>%
+  left_join(final_df, by = c("nombre_comuna", "date_day_before" = "date")) %>%
+  rename(protest_coes_lag1 = protest_coes,
+    shootings_lag1 = shootings,
+    beatings_lag1 = beatings,
+    arrests_lag1 = arrests,
+    crowd_control_lag1 = crowd_control,
+    repression_total_lag1 = repression_total,
+    police_per_100k_lag1 = police_per_100k)
+
+# Combine
+
+cep_survey_protest <- left_join(cep_survey_with_current_day_data, 
+                                cep_survey_with_previous_day_data[c("respondent_id", 
+                                                                    "protest_coes_lag1", 
+                                                                    "shootings_lag1", 
+                                                                    "beatings_lag1", 
+                                                                    "arrests_lag1", 
+                                                                    "crowd_control_lag1", 
+                                                                    "repression_total_lag1", 
+                                                                    "police_per_100k_lag1")], 
+                                by = "respondent_id")
+
+# Add info for 3 days prior and 7 days prior
+# Function to fetch data from final_df for a given date and comuna_name
+fetch_data_from_final_df <- function(survey_date, comuna_name, event_data, days_prior) {
+  start_date <- survey_date - days_prior
+  end_date <- survey_date - 1
+  
+  event_data %>%
+    filter(nombre_comuna == comuna_name, date >= start_date, date <= end_date) %>%
+    select(
+      protest_coes, shootings, beatings, arrests, crowd_control,
+      repression_total, police_per_100k
+    ) %>%
+    summarise_all(sum, na.rm = TRUE)
+}
+
+# Add columns for 3-day and 7-day prior data
+cep_survey_protest <- cep_survey_protest %>%
+  rowwise() %>%
+  mutate(
+    data_3day = list(fetch_data_from_final_df(date, nombre_comuna, final_df, 3)),
+    data_7day = list(fetch_data_from_final_df(date, nombre_comuna, final_df, 7))
+  )
+
+# Unnest the data and add columns with prefixes
+cep_survey_protest <- cep_survey_protest %>%
+  unnest(data_3day, names_sep = "_") %>%
+  unnest(data_7day, names_sep = "_")
+
+save(cep_survey_protest, file = "03-outputs/01-data/cep_survey_protest.RData")
