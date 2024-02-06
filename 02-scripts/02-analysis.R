@@ -3,7 +3,9 @@
 #-R Version: 4.3.1 --------------------------------- Revised: January 12, 2023-#
 
 pacman::p_load(glmmTMB, modelsummary, MASS, brms, rstanarm, lme4, lmtest,
-               car, effects, ggeffects, scales, fixest)
+               car, effects, ggeffects, scales, fixest, ggplot2)
+
+# Note: necessary data for replication available in 01-data/03-replication-data
 
 # Descriptive statistics
 
@@ -91,25 +93,28 @@ freq_table_month
 
 ## Initial model 1 lag
 model_lag1_coes <- glmmTMB(protest_coes ~ shootings_lag1 + beatings_lag1 + arrests_lag1 +
-                             crowd_control_lag1 + protest_coes_lag1,
+                           crowd_control_lag1 + protest_coes_lag1,
                            data = final_df_1day_lag, family = nbinom2)
 
 ## Model with t-1 lag + controls + random effects per municipality + zero inflated
 model_lag1_coes2 <- glmmTMB(protest_coes ~ shootings_lag1 + beatings_lag1 + arrests_lag1 +
-                              crowd_control_lag1 + protest_coes_lag1 + police_per_100k_lag1 +
+                            crowd_control_lag1 + protest_coes_lag1 + police_per_100k_lag1 +
+                            rain_lag1 + hot_day_lag1 +
                             weekday_category + distance_km + (1|nombre_comuna), 
                             data = final_df_1day_lag, zi = ~1, family = nbinom1)
 
 ## Model with 3day accumulation la + controls + random effects per municipality + zero inflated
 model_3day_coes2 <- glmmTMB(protest_coes ~ acc_3day_shootings + acc_3day_beatings +
                             acc_3day_arrests + acc_3day_crowd_control + acc_3day_protest_coes +
-                            acc_3day_police_per_100k + distance_km + (1|nombre_comuna),
+                            acc_3day_police_per_100k + acc_3day_rain +  acc_3day_hot_day +
+                            distance_km + (1|nombre_comuna),
                             family = nbinom1, zi = ~1, data = final_df_3day_lag_acc)
 
 ## Model with 7day accumulation + controls + random effects per municipality + zero inflated
 model_7day_coes2 <- glmmTMB(protest_coes ~ acc_7day_shootings + acc_7day_beatings + 
                             acc_7day_arrests + acc_7day_crowd_control + acc_7day_protest_coes +
-                            acc_7day_police_per_100k + distance_km + (1|nombre_comuna), 
+                            acc_7day_police_per_100k + acc_7day_rain + acc_7day_hot_day +
+                            distance_km + (1|nombre_comuna), 
                             family = nbinom1, zi = ~1, data = final_df_7day_lag_acc)
 
 msummary(list(model_lag1_coes,model_lag1_coes2, model_3day_coes2, model_7day_coes2),
@@ -133,7 +138,7 @@ plot_shootings <- ggplot(predict_shootings, aes(x = x, y = predicted, group = Mo
   geom_line() +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, fill = "grey") +
   facet_wrap(~ Model, scales = "free_x") +  
-  labs(x = "Shootings", y = "Predicted Protests") +
+  labs(x = "Shootings", y = "Predicted Effect") +
   theme_minimal() +
   theme(legend.position = "none",  
         strip.background = element_blank(),
@@ -159,7 +164,7 @@ plot_crowd_control <- ggplot(predict_crowd_control, aes(x = x, y = predicted, gr
   geom_line() +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, fill = "grey") +
   facet_wrap(~ Model, scales = "free_x") +  # Use facet_wrap to create separate panels
-  labs(x = "Crowd Control Techniques", y = "Predicted Protests") +
+  labs(x = "Crowd Control Techniques", y = "Predicted Effect") +
   theme_minimal() +
   theme(legend.position = "none",  # Hide the legend, as Model is now in the facet title
         strip.background = element_blank(),
@@ -186,14 +191,14 @@ plot_beatings <- ggplot(predict_beatings, aes(x = x, y = predicted, group = Mode
   geom_line() +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, fill = "grey") +
   facet_wrap(~ Model, scales = "free_x") +  # Use facet_wrap to create separate panels
-  labs(x = "Beatings", y = "Predicted Protests") +
+  labs(x = "Beatings", y = "Predicted Effect") +
   theme_minimal() +
   theme(legend.position = "none",  # Hide the legend
         strip.background = element_blank(),
         strip.text.x = element_text(size = 12)) +
   scale_x_continuous(breaks = seq(0, 12, by = 2)) +
   scale_y_continuous(labels = label_number(accuracy = 0.01)) + 
-  coord_cartesian(xlim = c(0, 12), ylim = c(0.00, 0.15))  
+  coord_cartesian(xlim = c(0, 12), ylim = c(0.00, 0.09))  
 
 plot_beatings
 
@@ -214,14 +219,14 @@ plot_arrests <- ggplot(predict_arrests, aes(x = x, y = predicted, group = Model)
   geom_line() +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, fill = "grey") +
   facet_wrap(~ Model, scales = "free_x") +  # Use facet_wrap to create separate panels
-  labs(x = "Arrests", y = "Predicted Protests") +
+  labs(x = "Arrests", y = "Predicted Effect") +
   theme_minimal() +
   theme(legend.position = "none",  # Hide the legend
         strip.background = element_blank(),
         strip.text.x = element_text(size = 12)) +
   scale_x_continuous(breaks = seq(0, 10, by = 2)) +
   scale_y_continuous(labels = label_number(accuracy = 0.01)) + 
-  coord_cartesian(xlim = c(0, 10), ylim = c(0.00, 0.12))  
+  coord_cartesian(xlim = c(0, 10), ylim = c(0.00, 0.13))  
 
 plot_arrests
 
@@ -268,8 +273,13 @@ model1_cep_3day <- feols(eval_carab ~ data_3day_shootings + data_3day_beatings +
                            data_3day_arrests + data_3day_crowd_control + 
                            data_3day_police_per_100k | nombre_comuna, data = cep_survey_protest)
 
-msummary(list(model1_cep_1day,model1_cep_3day),
-         stars = c('*' = .1, '**' = .05, '***' = .01))
+model1_cep_7day <- feols(eval_carab ~ data_7day_shootings + data_7day_beatings + 
+                           data_7day_arrests + data_7day_crowd_control + 
+                           data_7day_police_per_100k | nombre_comuna, data = cep_survey_protest)
+
+msummary(list(model1_cep_1day,model1_cep_3day, model1_cep_7day),
+         stars = c('*' = .1, '**' = .05, '***' = .01),
+         output = 'latex')
 
 
 # - ESP_41_1 justification of protest participation
@@ -302,7 +312,11 @@ model2_cep_3day <- feols(protest_justification ~ data_3day_shootings + data_3day
                            data_3day_arrests + data_3day_crowd_control + 
                            data_3day_police_per_100k | nombre_comuna, data = cep_survey_protest)
 
-msummary(list(model2_cep_1day,model2_cep_3day),
+model2_cep_7day <- feols(protest_justification ~ data_7day_shootings + data_7day_beatings + 
+                           data_7day_arrests + data_7day_crowd_control + 
+                           data_7day_police_per_100k | nombre_comuna, data = cep_survey_protest)
+
+msummary(list(model2_cep_1day,model2_cep_3day, model2_cep_7day),
          stars = c('*' = .1, '**' = .05, '***' = .01),
          output = 'latex',
          title = 'Models for Protest Justification')
@@ -337,16 +351,14 @@ model3_cep_3day <- feols(hr_violations ~ data_3day_shootings + data_3day_beating
                            data_3day_arrests + data_3day_crowd_control + eval_carab +
                            data_3day_police_per_100k | nombre_comuna, data = cep_survey_protest)
 
-msummary(list(model3_cep_1day,model3_cep_3day),
+model3_cep_7day <- feols(hr_violations ~ data_7day_shootings + data_7day_beatings + 
+                           data_7day_arrests + data_7day_crowd_control + eval_carab +
+                           data_7day_police_per_100k | nombre_comuna, data = cep_survey_protest)
+
+
+msummary(list(model3_cep_1day,model3_cep_3day,model3_cep_7day),
          stars = c('*' = .1, '**' = .05, '***' = .01),
          output = 'latex',
          title = 'Models for Human Rights Violations')
 
-
-#- confianza en carabineros
-#- justificacion tecnicas de represion: uso lacrimonegas, fuerza contra un manifestante violento, disparar balines
-#- frecuencia de violacion de ddhh carabienros, militares
-#- justificacion participar de una marcha, participar de destrozos, provocar incendios, participar saqueos
-#- frecuencia realizacion protestas, particiapcion huelga
-#- frecuencia mirar programas tv, leer noticias politica, seguir temas politicos rrss
-#- En temas de orden público, el Estado usa su poder legítimamente
+save(cep_survey_protest, file = "01-data/03-replication-data/cep_survey_protest.RData")
