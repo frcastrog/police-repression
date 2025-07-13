@@ -1,52 +1,48 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# The Backlash Effect of State Coercion: Protest Resilience Under Costly and Targeted Repression
+# Deterrence or Defiance? How Severity and Selectivity Shape Protest Responses to Repression
 
-[Francisca Castro](https://francisca-castro.com/) • Institute of Social
-Sciences • Humboldt-Universität zu Berlin  
+[Francisca Castro](https://francisca-castro.com/) • ISDC - International
+Security and Development Center  
 
 ------------------------------------------------------------------------
 
 ## Abstract
 
-The impact of state repression on protests is puzzling. While in some
-cases repression can deter street mobilization, other times it
-backfires, increasing protest occurrence. It is not yet entirely clear
-repressive actions are associated with deterrence or incitement of
-protest activity, and why. Using novel data on protest and repression in
-Chile, I study the effect of repressive actions on the occurrence of
-protest events. Through models that account for special dynamics and
-lagged effects, I find that police beatings increase subsequent protest
-activity. Conversely, other repressive acts, such as the use of water
-cannons or arrests, neither incite nor discourage protests. I argue that
-repression backfires when it is visible and targeted: when is visible,
-costs are perceived and, when directed at individuals rather than a
-group of protesters, repression may be deemed inappropriate and even
-unjustified. These results help to understand why repression backfires,
-and also question whether repression is effective in reducing
-contentious activities in democratic contexts.
+State repression’s effect on protest behavior is theorized to depend on
+two key dimensions: its severity (level of harm imposed) and selectivity
+(whether targeted or indiscriminate). While scholars have developed
+sophisticated theoretical frameworks around these dimensions, most
+empirical evidence comes from authoritarian contexts. Moreover, we lack
+systematic evidence about how specific combinations of severity and
+selectivity influence protest dynamics. Using data from Chile’s 2019
+protest cycle, I examine how different tactical combinations shape
+subsequent mobilization. Through models accounting for spatial dynamics
+and temporal effects, I find patterns that challenge theoretical
+expectations. Contrary to predictions, selective high-severity tactics
+generated short-term mobilization rather than deterrence, while
+low-severity tactics produced significant protest increases regardless
+of their selectivity. Survey evidence reveals that these effects
+operated partly through public attitudes. These findings demonstrate the
+need to revise theoretical frameworks around severity and selectivity,
+particularly in democratic contexts.
 
 ------------------------------------------------------------------------
 
 ## How to download and replicate
 
 You can download the data for replication
-[here](https://github.com/frcastrog/police-repression/tree/main/01-data/01-raw-data).
-In this folder, you will find the raw data used in this study:
+[here](https://github.com/frcastrog/police-repression/tree/main/01-data/).
+In this folder, you will find the data used in this study:
 
-- Data on human rights violations provided by the National Institute of
-  Human Rights
+- **Human rights violations data** (`indh_clean.RData`) - Provided by
+  the National Institute of Human Rights (INDH)
+- **Protest occurrence data** (`final_df_standardized.RData`,
+  `final_df.RData`) - Based on COES Social Conflict Observatory data
 
-- Data on protest occurrence provided by COES
+The script `replication-script.R` contains all the code to replicate:
 
-- Number of police working in crowd control during the protest period,
-  provided by the Chilean Police, Carabineros, official statistics,
-  requested through Transparency Law.
-
-The script `01-data-prep` contains the code to make the necessary
-modifications to the original data, which includes recoding, merging of
-data, and clean up.
-
-The script `02-analysis` contains the code to replicate the figures and
-tables of both the manuscript and the supplementary information.
+- **Main manuscript**: Figures 1, 3-7 and Tables 1, 3
+- **Supplementary information**: Tables A1, B1-B2, C1-C2, D1-D2 and
+  Figures C1, E1-E4

@@ -37,6 +37,7 @@ You can download the data for replication [here](https://github.com/frcastrog/po
 
 
 The script `replication-script.R` contains all the code to replicate:
+
 - **Main manuscript**: Figures 1, 3-7 and Tables 1, 3
 - **Supplementary information**: Tables A1, B1-B2, C1-C2, D1-D2 and Figures C1, E1-E4
 
